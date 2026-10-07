@@ -1,55 +1,83 @@
-// Response schema for structured SEO analysis
-const seoAnalysisSchema = {
-    type: Type.OBJECT,
+export const seoAnalysisSchema = {
+    type: "OBJECT",
     properties: {
-        overallScore: { type: Type.INTEGER },
+        overallScore: { type: "INTEGER" },
         categories: {
-            type: Type.OBJECT,
+            type: "OBJECT",
             properties: {
-                seo: { type: Type.INTEGER },
-                performance: { type: Type.INTEGER },
-                accessibility: { type: Type.INTEGER },
-                bestPractices: { type: Type.INTEGER },
+                seo: { type: "INTEGER" },
+                performance: { type: "INTEGER" },
+                accessibility: { type: "INTEGER" },
+                bestPractices: { type: "INTEGER" },
             },
             required: ["seo", "performance", "accessibility", "bestPractices"],
         },
         keywords: {
-            type: Type.ARRAY,
+            type: "ARRAY",
             items: {
-                type: Type.OBJECT,
+                type: "OBJECT",
                 properties: {
-                    word: { type: Type.STRING },
-                    count: { type: Type.INTEGER },
-                    density: { type: Type.NUMBER },
+                    word: { type: "STRING" },
+                    count: { type: "INTEGER" },
+                    density: { type: "NUMBER" },
                 },
                 required: ["word", "count", "density"],
             },
         },
         issues: {
-            type: Type.ARRAY,
+            type: "ARRAY",
             items: {
-                type: Type.OBJECT,
+                type: "OBJECT",
                 properties: {
                     severity: {
-                        type: Type.STRING,
-                        format: "enum",
+                        type: "STRING",
                         enum: ["critical", "warning", "info"],
                     },
-
-                    category: { type: Type.STRING },
-                    message: { type: Type.STRING },
-                    recommendation: { type: Type.STRING },
+                    category: { type: "STRING" },
+                    message: { type: "STRING" },
+                    recommendation: { type: "STRING" },
                 },
                 required: ["severity", "category", "message", "recommendation"],
             },
         },
     },
     required: ["overallScore", "categories", "keywords", "issues"],
-};
+} as const;
 
+interface ScrapedData {
+    url: string;
+    loadTime: number;
+    statusCode: number;
+    pageSize: number;
+    wordCount: number;
+    metaData: {
+        title: string;
+        description: string;
+        canonical: string;
+        robots: string;
+        ogTitle: string;
+        ogDescription: string;
+        ogImage: string;
+        twitterCard: string;
+        viewport: string;
+        charset: string;
+    };
+    headings: {
+        h1: number;
+        h1Texts: string[];
+        h2: number;
+        h3: number;
+        h4: number;
+        h5: number;
+        h6: number;
+    };
+    links: { internal: number; external: number; total: number };
+    images: { total: number; missingAlt: number; withAlt: number };
+    bodyText: string;
+}
 
-// Prompt for getting SEO Analysis structured data from AI
-const prompt = `You are an expert SEO analyst. Analyze the following website data and provide a comprehensive SEO audit.
+export function buildSeoAnalysisPrompt(scrapedData: ScrapedData): string {
+    return `You are an expert SEO analyst. Analyze the following website data and provide a comprehensive SEO audit.
 
 Website URL: ${scrapedData.url}
 Load Time: ${scrapedData.loadTime}ms
@@ -106,3 +134,4 @@ Scoring guidelines:
 Severity levels must be exactly one of: "critical", "warning", or "info".
 Provide 5-15 issues sorted by severity (critical first). Be specific and actionable with recommendations.
 Extract top 10 keywords by frequency from the page content.`;
+}

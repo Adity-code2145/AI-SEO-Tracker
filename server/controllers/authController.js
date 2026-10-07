@@ -4,16 +4,22 @@ import jwt from "jsonwebtoken"
 
 // Generate JWT token
 const generateToken = (id)=>{
+    if (!process.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET is not configured");
+    }
     return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: "30d"})
 }
 
 //Register user
 export const register = async (req,res)=>{
     try {
-        const {name, email, password} = req.body;
+        const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+        const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+        const password = typeof req.body.password === "string" ? req.body.password : "";
         
-        if(!name || !email || !password) return res.status(400).json({success: false,message:
-            "All fields are required"});
+        if (!name || !email || !password) {
+            return res.status(400).json({success: false,message: "All fields are required"});
+        }
 
         //Check if user exists
         const existingUser = await User.findOne({email})
@@ -30,10 +36,15 @@ export const register = async (req,res)=>{
 
         const token = generateToken(user._id);
 
-        res.status(201).json({success: true, token, user})
+        const publicUser = user.toObject();
+        delete publicUser.password;
+        res.status(201).json({success: true, token, user: publicUser})
 
     } catch (error) {
-        console.error("Register error:", error.message)
+        console.error("Register error:", error)
+        if (error.code === 11000) {
+            return res.status(400).json({success: false, message: "User already exists"});
+        }
         res.status(500).json({success: false, message: "Server error"})
     }
 }
@@ -42,7 +53,8 @@ export const register = async (req,res)=>{
 
 export const login = async (req,res) =>{
     try {
-        const {email, password} = req.body;
+        const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+        const password = typeof req.body.password === "string" ? req.body.password : "";
 
         if(!email || !password) return res.status(400).json({success: false, message : "All fields are required"});
 
@@ -60,10 +72,12 @@ export const login = async (req,res) =>{
         // now if password is also matching
         const token = generateToken(user._id);
         
-        res.status(201).json({success: true, token, user})
+        const publicUser = user.toObject();
+        delete publicUser.password;
+        res.status(200).json({success: true, token, user: publicUser})
 
     } catch (error) {
-        console.error("Register error:", error.message)
+        console.error("Login error:", error)
         res.status(500).json({success: false, message: "Server error"})
     }
 }

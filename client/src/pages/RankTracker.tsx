@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Target, Plus, RefreshCw, Trash2, TrendingUp, TrendingDown, Minus, ExternalLink, Clock, Loader2, X, Search, Globe, AlertCircle, Eye, EyeOff, Filter, ArrowUpDown } from "lucide-react";
-import { dummyRankings } from "../assets/assets";
+import { useApp } from "../context/useApp";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 
 interface KeywordItem {
     _id: string;
@@ -16,10 +17,18 @@ interface KeywordItem {
     active: boolean;
     lastChecked: string | null;
     status: string;
+    createdAt: string;
+    resultsScanned: number;
+    lastError: string;
+    searchCountry: string;
     competitors: { position: number; url: string; domain: string; title: string; snippet: string }[];
 }
 
 export default function RankTracker() {
+
+
+    const {api} = useApp()
+
     const [keywords, setKeywords] = useState<KeywordItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -33,39 +42,119 @@ export default function RankTracker() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
 
-    const fetchKeywords = async () => {
-        setTimeout(() => {
-            setKeywords(dummyRankings);
-            setLoading(false);
-        }, 1000);
-    };
+    useEffect(() => {
+        let active = true;
+        const loadKeywords = async () => {
+            try {
+                const response = await api.get('/api/rank/list');
+                if (active && response.data.success) setKeywords(response.data.keywords);
+            } catch (error) {
+                console.error("Failed to fetch keywords:", error);
+                if (active) toast.error("Could not load tracked keywords.");
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+        void loadKeywords();
+        return () => {
+            active = false;
+        };
+    }, [api]);
 
-    const handleAdd = async (e: React.SubmitEvent) => {
+    useEffect(() => {
+        const checkingKeywords = keywords.filter((keyword) => keyword.status === "checking");
+        if (checkingKeywords.length === 0) return;
+
+        const pollInterval = setInterval(async () => {
+            const updatedKeywords = await Promise.all(
+                checkingKeywords.map(async (keyword) => {
+                    try {
+                        const check = await api.get(`/api/rank/${keyword._id}`);
+                        return check.data.tracking as KeywordItem;
+                    } catch (error) {
+                        console.error("Failed to refresh keyword status:", error);
+                        return null;
+                    }
+                }),
+            );
+            const updates = updatedKeywords.filter((keyword): keyword is KeywordItem => keyword !== null);
+            setKeywords((previous) => previous.map(
+                (keyword) => updates.find((updated) => updated._id === keyword._id) ?? keyword,
+            ));
+            updates.forEach((keyword) => {
+                if (keyword.status !== "checking") {
+                    setRefreshing((current) => current === keyword._id ? null : current);
+                }
+            });
+        }, 3000);
+
+        return () => clearInterval(pollInterval);
+    }, [api, keywords]);
+
+    const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if(!newKeyword.trim() || !newUrl.trim()) return;
         setAdding(true);
-        setTimeout(() => {
-            setShowAddModal(false);
-            setAdding(false);
-        }, 1000);
+        setAddError("")
+        try {
+            const res = await api.post('/api/rank/add',{
+                keyword: newKeyword.trim(),
+                url: newUrl.trim()
+            });
+            if(res.data.success){
+                setKeywords((prev)=> [res.data.tracking, ...prev])
+                setNewKeyword("")
+                setNewUrl("")
+                setShowAddModal(false)
+            }
+        } catch (error: unknown) {
+            const message = axios.isAxiosError<{ message?: string }>(error)
+                ? error.response?.data?.message
+                : undefined;
+            setAddError(message || "Failed to add keyword");
+        } finally {
+            setAdding(false)
+        }
     };
 
     const handleRefresh = async (id: string) => {
         setRefreshing(id);
-        setTimeout(() => {
+        try {
+            const response = await api.post(`/api/rank/${id}/refresh`);
+            setKeywords((previous) => previous.map(
+                (keyword) => keyword._id === id ? response.data.tracking : keyword,
+            ));
+        } catch (error) {
+            console.error("Failed to refresh keyword:", error);
+            toast.error("Could not refresh this keyword.");
             setRefreshing(null);
-        }, 1000);
+        }
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this keyword tracking?")) return;
         setDeleting(id);
-        setTimeout(() => {
+        try {
+            await api.delete(`/api/rank/${id}`);
+            setKeywords((previous) => previous.filter((keyword) => keyword._id !== id));
+        } catch (error) {
+            console.error("Failed to delete keyword:", error);
+            toast.error("Could not delete this keyword.");
+        } finally {
             setDeleting(null);
-        }, 1000);
+        }
     };
 
     const handleToggle = async (id: string) => {
-        console.log(id);
+        try {
+            const response = await api.post(`/api/rank/${id}/toggle`);
+            setKeywords((previous) => previous.map(
+                (keyword) => keyword._id === id ? response.data.tracking : keyword,
+            ));
+        } catch (error) {
+            console.error("Failed to update keyword tracking:", error);
+            toast.error("Could not update tracking status.");
+        }
     };
 
     const getPositionBadge = (pos: number | null) => {
@@ -96,22 +185,18 @@ export default function RankTracker() {
         }
     }
 
-    processedData.sort((a: any, b: any) => {
+    processedData.sort((a, b) => {
         if (sortBy === "newest") {
-            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         } else if (sortBy === "rank_asc") {
-            return (a.currentPosition || 999) - (b.currentPosition || 999);
+            return (a.currentPosition ?? Number.MAX_SAFE_INTEGER) - (b.currentPosition ?? Number.MAX_SAFE_INTEGER);
         } else if (sortBy === "rank_desc") {
-            return (b.currentPosition || 0) - (a.currentPosition || 0);
+            return (b.currentPosition ?? 0) - (a.currentPosition ?? 0);
         } else if (sortBy === "change") {
             return (b.positionChange || 0) - (a.positionChange || 0);
         }
         return 0;
     });
-
-    useEffect(() => {
-        (async () => await fetchKeywords())();
-    }, []);
 
     return (
         <div className="min-h-scree pt-16 md:pt-24 bg-background">
@@ -122,7 +207,7 @@ export default function RankTracker() {
                         <h1 className="text-2xl sm:text-3xl font-medium text-foreground">
                             <span className="gradient-text">Rank Tracker</span>
                         </h1>
-                        <p className="text-muted-foreground text-sm mt-1">Track your keyword rankings on Google — updated daily.</p>
+                        <p className="text-muted-foreground text-sm mt-1">Check your keyword positions in Google search results.</p>
                     </div>
                     <button onClick={() => setShowAddModal(true)} className="bg-primary px-5 py-2.5 rounded-xl text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity flex items-center gap-2 self-start" id="add-keyword-btn" style={{ color: "var(--background)" }}>
                         <Plus size={18} />
@@ -224,6 +309,16 @@ export default function RankTracker() {
                                                 <span className="text-sm text-muted-foreground truncate">{kw.domain}</span>
                                                 {kw.currentPage && <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Page {kw.currentPage}</span>}
                                             </div>
+                                            {kw.status === "completed" && kw.currentPosition === null && (
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Not found in {kw.resultsScanned} results · Google region: {kw.searchCountry.toUpperCase()}
+                                                </p>
+                                            )}
+                                            {kw.status === "failed" && (
+                                                <p className="text-xs text-danger mt-1 truncate" title={kw.lastError}>
+                                                    Rank check failed: {kw.lastError || "Unknown error"}
+                                                </p>
+                                            )}
                                             {kw.lastChecked && (
                                                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                                     <Clock size={10} />
@@ -334,7 +429,7 @@ export default function RankTracker() {
                             </div>
 
                             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-muted-foreground">
-                                <p>💡 We'll search Google for your keyword, find your website's position (up to page 5), and track it daily.</p>
+                                <p>💡 We'll check the first 50 Google organic results for your website. Rankings vary by search region and can be updated with Refresh.</p>
                             </div>
 
                             <button type="submit" disabled={adding} className="w-full py-3 rounded-xl bg-primary font-semibold text-sm text-primary-foreground flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50" style={{ color: "var(--background)" }}>

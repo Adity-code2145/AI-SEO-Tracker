@@ -2,7 +2,7 @@
 
 AI SEO Tracker is a full-stack web application for exploring website SEO audits and keyword ranking workflows. It combines a React and TypeScript client with an Express API and MongoDB-backed user authentication.
 
-> **Project status:** The current client includes interactive analysis, report, history, dashboard, and rank-tracking screens that use sample data and simulated analysis flows. The server currently implements registration, login, and authenticated user lookup; SEO analysis and keyword tracking are not yet connected to live backend services.
+> **Project status:** Registration, login, authenticated user lookup, and Google keyword rank checks are connected to the MongoDB-backed API. The analysis, report, history, and dashboard screens still use sample data and simulated analysis flows.
 
 ## Contents
 
@@ -20,7 +20,7 @@ AI SEO Tracker is a full-stack web application for exploring website SEO audits 
 
 - Website analysis flow with a simulated progress experience and sample SEO report.
 - Dashboard and analysis history views populated with example data.
-- Keyword rank-tracking interface with sample rankings, filters, and sorting.
+- Google keyword rank tracking with stored position history, competitors, filters, and sorting. Checks cover up to the first 50 organic results and use the configured Google country/language; rankings can vary by location and personalization.
 - User registration and login with password hashing and JSON Web Token authentication.
 - Protected client routes for the dashboard, analysis, reports, history, and rank tracker.
 - Responsive interface built with React, TypeScript, Tailwind CSS, and Vite.
@@ -48,10 +48,12 @@ AI-SEO-Tracker/
 │       └── assets/
 └── server/
     ├── config/          # MongoDB connection
-    ├── controllers/     # Authentication handlers
+    ├── controllers/     # Authentication and rank-tracking handlers
     ├── middleware/      # JWT authentication
     ├── models/          # Mongoose models
-    └── routes/          # Express routes
+    ├── routes/          # Express routes
+    ├── services/        # Google rank lookup and persistence
+    └── tests/           # Rank utility tests
 ```
 
 ## Getting started
@@ -87,10 +89,14 @@ Create `server/.env` with the MongoDB connection string and a strong, private JW
 ```dotenv
 MONGODB_URI=mongodb://127.0.0.1:27017/ai-seo-tracker
 JWT_SECRET=replace-with-a-long-random-secret
+BROWSERBASE_API_KEY=your-browserbase-api-key
 PORT=5000
+GOOGLE_SEARCH_COUNTRY=in
+GOOGLE_SEARCH_LANGUAGE=en
 ```
 
 For a hosted MongoDB database, use its connection string for `MONGODB_URI`. The `PORT` variable is optional; the server defaults to port `5000`.
+`BROWSERBASE_API_KEY` is required to run keyword checks. `GOOGLE_SEARCH_COUNTRY` and `GOOGLE_SEARCH_LANGUAGE` are optional and default to `in` and `en`.
 
 The client defaults to `http://localhost:5000` for its API. To use another API URL, create `client/.env`:
 

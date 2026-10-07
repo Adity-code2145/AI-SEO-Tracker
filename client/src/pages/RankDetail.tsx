@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Target, Globe, Clock, TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle, ExternalLink, Trophy, Users, Calendar, Loader2 } from "lucide-react";
-import { dummyWebsiteRanking } from "../assets/assets";
+import { useApp } from "../context/useApp";
+import { toast } from "react-hot-toast";
 
 interface RankHistoryEntry {
     date: string;
@@ -35,33 +35,58 @@ interface TrackingData {
     lastChecked: string | null;
     status: string;
     createdAt: string;
+    resultsScanned: number;
+    lastError: string;
+    searchCountry: string;
 }
 
 export default function RankDetail() {
     const { id } = useParams();
+    const { api } = useApp();
     const [tracking, setTracking] = useState<TrackingData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState("overview");
     const chartRef = useRef<HTMLCanvasElement>(null);
 
-    const fetchTracking = async () => {
-        setTimeout(() => {
-            setTracking(dummyWebsiteRanking);
-            setLoading(false);
-        }, 1000);
-    };
+    const requestTracking = useCallback(async () => {
+        if (!id) throw new Error("Tracking ID is missing");
+        const { data } = await api.get(`/api/rank/${id}`);
+        return {
+            ...data.tracking,
+            rankHistory: data.tracking.rankHistory ?? [],
+            competitors: data.tracking.competitors ?? [],
+        } as TrackingData;
+    }, [api, id]);
+
+    const fetchTracking = useCallback(async () => {
+        try {
+            const nextTracking = await requestTracking();
+            setTracking(nextTracking);
+            if (nextTracking.status !== "checking") setRefreshing(false);
+        } catch (error) {
+            console.error("Failed to refresh keyword tracking data:", error);
+        }
+    }, [requestTracking]);
 
     const handleRefresh = async () => {
         if (!tracking) return;
         setRefreshing(true);
-        setTimeout(() => {
-            setTracking(dummyWebsiteRanking);
+        try {
+            const { data } = await api.post(`/api/rank/${tracking._id}/refresh`);
+            setTracking({
+                ...data.tracking,
+                rankHistory: data.tracking.rankHistory ?? [],
+                competitors: data.tracking.competitors ?? [],
+            });
+        } catch (error) {
+            console.error("Failed to refresh keyword ranking:", error);
+            toast.error("Could not refresh this keyword.");
             setRefreshing(false);
-        }, 1000);
+        }
     };
 
-    const drawChart = () => {
+    const drawChart = useCallback(() => {
         const canvas = chartRef.current;
         if (!canvas || !tracking) return;
 
@@ -193,7 +218,7 @@ export default function RankDetail() {
         ctx.textAlign = "center";
         ctx.fillText("Position", 0, 0);
         ctx.restore();
-    };
+    }, [tracking]);
 
     const getChangeIndicator = (change: number) => {
         if (change > 0) return { icon: <TrendingUp size={16} />, text: `+${change}`, class: "text-emerald-500" };
@@ -210,14 +235,40 @@ export default function RankDetail() {
     };
 
     useEffect(() => {
-        (async () => await fetchTracking())();
-    }, [id]);
+        let active = true;
+        const loadTracking = async () => {
+            try {
+                const loadedTracking = await requestTracking();
+                if (active) setTracking(loadedTracking);
+            } catch (error) {
+                console.error("Failed to load keyword tracking:", error);
+                if (active) {
+                    setTracking(null);
+                    toast.error("Could not load this keyword tracking.");
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+        void loadTracking();
+        return () => {
+            active = false;
+        };
+    }, [requestTracking]);
+
+    useEffect(() => {
+        if (tracking?.status !== "checking") return;
+        const pollInterval = setInterval(() => {
+            void fetchTracking();
+        }, 3000);
+        return () => clearInterval(pollInterval);
+    }, [fetchTracking, tracking?.status]);
 
     useEffect(() => {
         if (tracking && tracking.rankHistory.length > 0 && chartRef.current) {
             drawChart();
         }
-    }, [tracking, activeTab]);
+    }, [tracking, activeTab, drawChart]);
 
     if (loading) {
         return (
@@ -276,6 +327,19 @@ export default function RankDetail() {
                         </button>
                     </div>
                 </div>
+
+                {tracking.status === "failed" && (
+                    <div className="mb-6 rounded-xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+                        Rank check failed: {tracking.lastError || "Unknown error. Try refreshing the rank check."}
+                    </div>
+                )}
+                {tracking.status === "completed" && tracking.currentPosition === null && (
+                    <div className="mb-6 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                        The site was not found in the {tracking.resultsScanned} organic results checked for the{" "}
+                        {tracking.searchCountry.toUpperCase()} Google region. This tracker checks up to the first 50 results;
+                        rankings can also vary by location and personalization.
+                    </div>
+                )}
 
                 {/* Score Hero */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animationDelay: "100ms" }}>
@@ -350,10 +414,10 @@ export default function RankDetail() {
                                 ) : (
                                     <div className="text-center py-12 text-muted-foreground">
                                         <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-                                        <p className="text-sm">No ranking data yet. Check back after the daily tracking runs.</p>
+                                        <p className="text-sm">No ranking history is available yet. Run a rank check to update this chart.</p>
                                     </div>
                                 )}
-                                <p className="text-xs text-muted-foreground mt-3 text-center">↑ Lower position number = higher rank. Updated daily at 6:00 AM UTC.</p>
+                                <p className="text-xs text-muted-foreground mt-3 text-center">↑ Lower position number = higher rank. Search results are based on the configured Google region.</p>
                             </div>
 
                             {/* Top 3 Competitors Preview */}

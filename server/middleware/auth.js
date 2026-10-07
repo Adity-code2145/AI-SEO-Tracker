@@ -8,9 +8,16 @@ const auth = async (req, res, next) =>{
             return res.status(401).json({success: false, message: "Not authorized, no token"})
         }
 
-        const token = authHeader.split(" ")[1];
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+        }
+
+        const token = authHeader.slice("Bearer ".length);
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
+        if (typeof decoded !== "object" || !decoded.id) {
+            return res.status(401).json({success: false, message: "Not authorized, token is invalid"});
+        }
         req.userId = decoded.id;
         next();
     } catch (error) {

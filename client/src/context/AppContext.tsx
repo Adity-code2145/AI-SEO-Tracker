@@ -1,119 +1,93 @@
-import type { AxiosInstance } from "axios";
 import axios from "axios";
-//import { config } from "node:process";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AppContext, type User } from "./app-context";
 
-interface User{
-    id: string;
-    name: string;
-    email: string;
-    plan : string;
-    analysisCount?: number;
-}
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
-interface AppContextType{
-    user: User | null;
-    token: string | null;
-    loading: boolean;
-    api: AxiosInstance;
-    login: (email: string, password: string)=> Promise<{success: boolean; message?: string}>;
-    register:(name : string, email: string, password: string)=> Promise<{success: boolean; message?: string}>;
-    logout: () => void;
-}
+export function AppProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+    const [loading, setLoading] = useState(() => Boolean(localStorage.getItem("token")));
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"
+    const api = useMemo(() => {
+        const instance = axios.create({ baseURL: BACKEND_URL });
+        instance.interceptors.request.use((config) => {
+            const storedToken = localStorage.getItem("token");
+            if (storedToken) config.headers.Authorization = `Bearer ${storedToken}`;
+            return config;
+        });
+        return instance;
+    }, []);
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+    useEffect(() => {
+        if (!token) return;
 
-export function AppProvider({children}: {children: ReactNode}){
-
-    const [user,setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-    const [loading, setLoading] = useState(true);
-
-    // Axios instance with auth header
-    const api = axios.create({
-        baseURL: BACKEND_URL,
-    })
-
-    // Update axios headers when token changes
-    api.interceptors.request.use((config)=>{
-        const token = localStorage.getItem("token")
-
-        if(token){
-            config.headers.Authorization = `Bearer ${token}`
-        }
-
-        return config;
-    })
-
-    const loadUser = async () => {
-        if(!token){
-            setLoading(false)
-            return;
-        }
-        try {
-            const {data} = await api.get('/api/auth/user')
-            if(data.success){
-                setUser(data.user)
+        let active = true;
+        const loadUser = async () => {
+            try {
+                const { data } = await api.get("/api/auth/user");
+                if (active && data.success) setUser(data.user);
+            } catch {
+                if (active) {
+                    localStorage.removeItem("token");
+                    setToken(null);
+                    setUser(null);
+                }
+            } finally {
+                if (active) setLoading(false);
             }
-        } catch (error) {
-            localStorage.removeItem("token");
-            setToken(null)
-            setUser(null)
-        }
-        setLoading(false)
-    }
+        };
+        void loadUser();
 
-    // Now I have to call the loadUser function
-    useEffect(()=>{
-        loadUser();
-    },[])
+        return () => {
+            active = false;
+        };
+    }, [api, token]);
 
-    const login = async (email : string, password : string) => {
+    const login = async (email: string, password: string) => {
         try {
-            const res = await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password})
-            if(res.data.success){
-                setToken(res.data.token)
-                setUser(res.data.user)
-                localStorage.setItem("token", res.data.token)
-                return {success: true}
-            }
-            return { success: false, message: res.data.message}
-        } catch (error: any) {
-            return {success: false, message: error.response?.data?.message || "Login failed"}
+            const { data } = await api.post("/api/auth/login", { email, password });
+            if (!data.success) return { success: false, message: data.message };
+            localStorage.setItem("token", data.token);
+            setUser(data.user);
+            setLoading(true);
+            setToken(data.token);
+            return { success: true };
+        } catch (error: unknown) {
+            const message = axios.isAxiosError<{ message?: string }>(error)
+                ? error.response?.data?.message
+                : undefined;
+            return { success: false, message: message || "Login failed" };
         }
-    }
+    };
 
-    const register = async (name : string, email : string, password : string) => {
+    const register = async (name: string, email: string, password: string) => {
         try {
-            const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {name, email, password})
-            if(res.data.success){
-                setToken(res.data.token)
-                setUser(res.data.user)
-                localStorage.setItem("token", res.data.token)
-                return {success: true}
-            }
-            return { success: false, message: res.data.message}
-        } catch (error: any) {
-            return {success: false, message: error.response?.data?.message || "Registration failed"}
+            const { data } = await api.post("/api/auth/register", { name, email, password });
+            if (!data.success) return { success: false, message: data.message };
+            localStorage.setItem("token", data.token);
+            setUser(data.user);
+            setLoading(true);
+            setToken(data.token);
+            return { success: true };
+        } catch (error: unknown) {
+            const message = axios.isAxiosError<{ message?: string }>(error)
+                ? error.response?.data?.message
+                : undefined;
+            return { success: false, message: message || "Registration failed" };
         }
-    }
+    };
 
-    const logout = async () => {
-        setToken(null)
-        setUser(null)
-        localStorage.removeItem("token")
-    }
+    const logout = () => {
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+    };
 
-    const value = {user, token, loading, api, login, register, logout}
-    return <AppContext.Provider value ={value}>
-        {children}
-    </AppContext.Provider>
-}
-
-export function useApp(){
-    const context = useContext(AppContext);
-    if(!context) throw new Error("useApp must be used within AppProvider")
-    return context;
+    return (
+        <AppContext.Provider value={{ user, token, loading, api, login, register, logout }}>
+            {children}
+        </AppContext.Provider>
+    );
 }
