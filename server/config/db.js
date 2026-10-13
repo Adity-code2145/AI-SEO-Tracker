@@ -1,8 +1,9 @@
 import dns from "node:dns";
-import mongoose from "mongoose";
-import KeywordTracking from "../models/keywordTracking.js";
-
 dns.setServers(["8.8.8.8"]);
+import mongoose from "mongoose";
+import KeywordTracking from "../models/KeywordTracking.js";
+
+
 
 const connectDB = async () => {
     if (!process.env.MONGODB_URI) {

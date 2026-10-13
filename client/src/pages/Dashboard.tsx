@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SearchIcon, ArrowRightIcon, BarChart3Icon, GlobeIcon, TrendingUpIcon } from "lucide-react";
 import AnalysesCard from "../components/AnalysesCard";
-import { dummyAnalysisData } from "../assets/assets";
+import { useApp } from "../context/useApp";
 
 interface AnalysisSummary {
     _id: string;
@@ -19,29 +19,48 @@ interface AnalysisSummary {
 }
 
 export default function Dashboard() {
-    const user = { name: "John Doe", plan: "free", analysisCount: 2 };
+    const { user, api, refreshUser } = useApp();
     const navigate = useNavigate();
     const [url, setUrl] = useState("");
     const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
+    const [totalScans, setTotalScans] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const fetchRecent = async () => {
-        setTimeout(() => {
-            setAnalyses(dummyAnalysisData);
-            setLoading(false);
-        }, 1000);
-    };
+    useEffect(() => {
+        let active = true;
+        const load = async () => {
+            try {
+                const { data } = await api.get("/api/analysis?limit=6");
+                if (active && data.success) {
+                    setAnalyses(data.analyses || []);
+                    setTotalScans(data.total || (data.analyses ? data.analyses.length : 0));
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard analyses:", error);
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+
+        void load();
+        void refreshUser();
+
+        return () => {
+            active = false;
+        };
+    }, [api, refreshUser]);
 
     const handleAnalyze = (e: React.SubmitEvent) => {
         e.preventDefault();
         if (url.trim()) {
-            navigate(`/analyze?url=${encodeURIComponent(url)}`);
+            navigate(`/analyze?url=${encodeURIComponent(url.trim())}`);
         }
     };
 
     const completedAnalyses = analyses.filter((a) => a.status === "completed");
-    const avgScore = completedAnalyses.length ? Math.round(completedAnalyses.reduce((sum, a) => sum + a.overallScore, 0) / completedAnalyses.length) : 0;
-    // const totalIssues = completedAnalyses.length;
+    const avgScore = completedAnalyses.length
+        ? Math.round(completedAnalyses.reduce((sum, a) => sum + a.overallScore, 0) / completedAnalyses.length)
+        : 0;
 
     const getScoreClass = (s: number) => {
         if (s >= 80) return "score-good";
@@ -49,17 +68,13 @@ export default function Dashboard() {
         return "score-poor";
     };
 
-    useEffect(() => {
-        (async () => await fetchRecent())();
-    }, []);
-
     return (
         <div className="min-h-screen pt-16 md:pt-24 bg-background">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-2xl sm:text-3xl font-medium text-foreground mb-1">
-                        Welcome back, <span className="gradient-text">{user?.name}</span>
+                        Welcome back, <span className="gradient-text">{user?.name || "there"}</span>
                     </h1>
                     <p className="text-muted-foreground text-sm">Analyze websites and boost your SEO performance.</p>
                 </div>
@@ -69,9 +84,21 @@ export default function Dashboard() {
                     <div className="border border-primary/20 rounded-full p-2 flex items-center gap-2 max-w-2xl">
                         <div className="flex items-center gap-3 flex-1 px-3">
                             <SearchIcon size={20} className="text-muted-foreground shrink-0" />
-                            <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Enter a URL to analyze..." className="w-full bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm py-3" id="dashboard-url-input" />
+                            <input
+                                type="text"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                placeholder="Enter a URL to analyze (e.g. example.com)..."
+                                className="w-full bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm py-3"
+                                id="dashboard-url-input"
+                            />
                         </div>
-                        <button type="submit" className="bg-primary px-5 py-3 rounded-full text-primary-foreground text-sm hover:opacity-90 transition-opacity shrink-0 flex items-center gap-2" style={{ color: "var(--background)" }} id="dashboard-analyze-btn">
+                        <button
+                            type="submit"
+                            className="bg-primary px-5 py-3 rounded-full text-primary-foreground text-sm hover:opacity-90 transition-opacity shrink-0 flex items-center gap-2"
+                            style={{ color: "var(--background)" }}
+                            id="dashboard-analyze-btn"
+                        >
                             Analyze
                             <ArrowRightIcon size={16} />
                         </button>
@@ -85,7 +112,7 @@ export default function Dashboard() {
                             <GlobeIcon size={22} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-foreground">{analyses.length}</p>
+                            <p className="text-2xl font-bold text-foreground">{totalScans}</p>
                             <p className="text-xs text-muted-foreground">Total Scans</p>
                         </div>
                     </div>
@@ -103,7 +130,9 @@ export default function Dashboard() {
                             <BarChart3Icon size={22} />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-foreground">{user?.plan === "free" ? `${5 - (user?.analysisCount || 0)}` : "∞"}</p>
+                            <p className="text-2xl font-bold text-foreground">
+                                {user?.plan === "free" ? `${Math.max(0, 5 - (user?.analysisCount || 0))}` : "∞"}
+                            </p>
                             <p className="text-xs text-muted-foreground">Scans Left Today</p>
                         </div>
                     </div>
@@ -113,7 +142,7 @@ export default function Dashboard() {
                 <div style={{ animationDelay: "300ms" }}>
                     <div className="flex items-center justify-between mb-5">
                         <h2 className="text-lg font-semibold text-foreground">Recent Analyses</h2>
-                        {analyses.length > 0 && (
+                        {totalScans > 0 && (
                             <Link to="/history" className="text-sm text-primary hover:underline flex items-center gap-1">
                                 View All <ArrowRightIcon size={14} />
                             </Link>

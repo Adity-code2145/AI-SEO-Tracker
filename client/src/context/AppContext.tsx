@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppContext, type User } from "./app-context";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
@@ -16,8 +16,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (storedToken) config.headers.Authorization = `Bearer ${storedToken}`;
             return config;
         });
+
+        instance.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (axios.isAxiosError(error) && error.response?.status === 401) {
+                    localStorage.removeItem("token");
+                    setToken(null);
+                    setUser(null);
+                }
+                return Promise.reject(error);
+            }
+        );
+
         return instance;
     }, []);
+
+    const refreshUser = useCallback(async () => {
+        const storedToken = localStorage.getItem("token");
+        if (!storedToken) return;
+        try {
+            const { data } = await api.get("/api/auth/user");
+            if (data.success) setUser(data.user);
+        } catch {
+            // Handled by 401 interceptor
+        }
+    }, [api]);
 
     useEffect(() => {
         if (!token) return;
@@ -50,7 +74,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (!data.success) return { success: false, message: data.message };
             localStorage.setItem("token", data.token);
             setUser(data.user);
-            setLoading(true);
             setToken(data.token);
             return { success: true };
         } catch (error: unknown) {
@@ -67,7 +90,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (!data.success) return { success: false, message: data.message };
             localStorage.setItem("token", data.token);
             setUser(data.user);
-            setLoading(true);
             setToken(data.token);
             return { success: true };
         } catch (error: unknown) {
@@ -86,7 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AppContext.Provider value={{ user, token, loading, api, login, register, logout }}>
+        <AppContext.Provider value={{ user, token, loading, api, login, register, logout, refreshUser }}>
             {children}
         </AppContext.Provider>
     );

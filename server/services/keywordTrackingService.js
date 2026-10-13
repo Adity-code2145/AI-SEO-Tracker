@@ -6,19 +6,15 @@ export async function keywordTracking(tracking) {
     tracking.keyword = normalizeKeyword(tracking.keyword);
 
     try {
-        for (let attempt = 1; attempt <= 2; attempt += 1) {
-            result = await rankTracker(tracking.keyword, tracking.domain);
-            if (result.success && result.data.totalResultsScanned > 0) break;
-            if (attempt < 2) {
-                await new Promise((resolve) => setTimeout(resolve, result.success ? 3000 : 5000));
-            }
-        }
+        result = await rankTracker(tracking.keyword, tracking.domain);
 
         if (!result.success || result.data.totalResultsScanned === 0) {
-            tracking.status = "failed";
+            tracking.status = tracking.lastChecked ? "completed" : "failed";
             tracking.lastError = result.error || "Google returned no organic results to check.";
-            tracking.resultsScanned = result.success ? result.data.totalResultsScanned : 0;
-            if (result.success) tracking.searchCountry = result.data.country;
+            if (result.success) {
+                tracking.resultsScanned = result.data.totalResultsScanned;
+                tracking.searchCountry = result.data.country;
+            }
             await tracking.save();
             return result;
         }
@@ -64,7 +60,7 @@ export async function keywordTracking(tracking) {
         await tracking.save();
         return result;
     } catch (error) {
-        tracking.status = "failed";
+        tracking.status = tracking.lastChecked ? "completed" : "failed";
         tracking.lastError = error.message || "Unexpected error during the rank check.";
         await tracking.save();
         throw error;

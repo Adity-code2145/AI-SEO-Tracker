@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import KeywordTracking from "../models/keywordTracking.js";
+import KeywordTracking from "../models/KeywordTracking.js";
 import { keywordTracking } from "../services/keywordTrackingService.js";
 import { normalizeDomain, normalizeKeyword } from "../services/rankUtils.js";
 
@@ -102,6 +102,12 @@ export const refreshKeyword = async (req, res) => {
     try {
         const tracking = await getTrackingForUser(req, res);
         if (!tracking) return;
+        if (tracking.status === "checking") {
+            return res.status(409).json({
+                success: false,
+                message: "A rank check is already in progress for this keyword",
+            });
+        }
         tracking.status = "checking";
         tracking.lastError = "";
         await tracking.save();

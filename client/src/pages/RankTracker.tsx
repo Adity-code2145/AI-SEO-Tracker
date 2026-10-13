@@ -121,6 +121,7 @@ export default function RankTracker() {
         setRefreshing(id);
         try {
             const response = await api.post(`/api/rank/${id}/refresh`);
+            // Update status to checking
             setKeywords((previous) => previous.map(
                 (keyword) => keyword._id === id ? response.data.tracking : keyword,
             ));
@@ -199,7 +200,7 @@ export default function RankTracker() {
     });
 
     return (
-        <div className="min-h-scree pt-16 md:pt-24 bg-background">
+        <div className="min-h-screen pt-16 md:pt-24 bg-background">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -314,9 +315,11 @@ export default function RankTracker() {
                                                     Not found in {kw.resultsScanned} results · Google region: {kw.searchCountry.toUpperCase()}
                                                 </p>
                                             )}
-                                            {kw.status === "failed" && (
+                                            {kw.lastError && (
                                                 <p className="text-xs text-danger mt-1 truncate" title={kw.lastError}>
-                                                    Rank check failed: {kw.lastError || "Unknown error"}
+                                                    {kw.lastChecked
+                                                        ? `Latest refresh did not complete; showing last successful rank. ${kw.lastError}`
+                                                        : `Rank check failed: ${kw.lastError}`}
                                                 </p>
                                             )}
                                             {kw.lastChecked && (

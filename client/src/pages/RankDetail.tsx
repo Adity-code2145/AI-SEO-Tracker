@@ -322,15 +322,18 @@ export default function RankDetail() {
                             </div>
                         </div>
                         <button onClick={handleRefresh} disabled={refreshing || tracking.status === "checking"} className="glass px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-muted/50 transition-all disabled:opacity-50 self-start text-foreground">
-                            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-                            Refresh Now
+                            <RefreshCw size={16} className={refreshing || tracking.status === "checking" ? "animate-spin" : ""} />
+                            {refreshing || tracking.status === "checking" ? "Checking..." : "Refresh Now"}
                         </button>
                     </div>
                 </div>
 
-                {tracking.status === "failed" && (
+                {tracking.lastError && (
                     <div className="mb-6 rounded-xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
-                        Rank check failed: {tracking.lastError || "Unknown error. Try refreshing the rank check."}
+                        {tracking.lastChecked
+                            ? `The latest refresh did not complete; showing the last successful rank from ${new Date(tracking.lastChecked).toLocaleString()}. `
+                            : "Rank check failed. "}
+                        {tracking.lastError}
                     </div>
                 )}
                 {tracking.status === "completed" && tracking.currentPosition === null && (

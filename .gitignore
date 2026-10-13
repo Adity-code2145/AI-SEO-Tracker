@@ -4,7 +4,7 @@ dist/
 build/
 coverage/
 
-# Environment files and secrets
+# Environment files and secrets (never commit real secrets)
 .env
 .env.*
 !.env.example

@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+__tests__
+tests
+*.test.js
+*.spec.js
