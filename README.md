@@ -1,225 +1,316 @@
-# AI SEO Tracker
+<div align="center">
 
-AI SEO Tracker is a full-stack web application for technical website SEO audits and Google keyword ranking workflows. It combines a React 19 and TypeScript client with an Express 5 API, MongoDB persistence, JWT authentication, and automated Google rank tracking.
+# 🚀 Rank Pilot — AI SEO Tracker & SERP Analyzer
 
-> **Project status:** Production-ready MVP. Registration, login, authenticated user lookup, URL submission with SSRF protection, full HTML SEO audits, persisted reports, history management, and Google keyword rank checks are all wired to the MongoDB-backed API.
+### *Next-Gen Technical SEO Audit Engine, Google Keyword Rank Tracker & Gemini-Powered AI Consultant*
 
-## Contents
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-ai--seo--tracker.vercel.app-00df9a?style=for-the-badge&logo=vercel&logoColor=white)](https://ai-seo-tracker.vercel.app)
+[![API Status](https://img.shields.io/badge/Render%20Backend-Online-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://seo-tracker-backend-u651.onrender.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-- [Features](#features)
-- [Technology stack](#technology-stack)
-- [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [Environment variables](#environment-variables)
-- [Available scripts](#available-scripts)
-- [API Reference](#api-reference)
-  - [Authentication API](#authentication-api)
-  - [Analysis API](#analysis-api)
-  - [Rank Tracking API](#rank-tracking-api)
-- [Security notes](#security-notes)
-- [Known limitations](#known-limitations)
-- [License](#license)
+<br/>
 
-## Features
+[![React 19](https://img.shields.io/badge/React%2019-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite%208-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind%20CSS%204-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Node.js](https://img.shields.io/badge/Node.js%2020-43853D?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express 5](https://img.shields.io/badge/Express%205-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB%20Atlas-4EA94B?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini%20AI-8E75C2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Docker](https://img.shields.io/badge/Docker%20Containerized-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
-- **Real SEO Analysis Workflow:**
-  - Submit any website URL from the dashboard or analysis page.
-  - Robust SSRF protection (private IP blocking, protocol restrictions, redirect re-validation, size limits, and timeouts).
-  - Comprehensive technical checks: metadata, canonical, robots, Open Graph, Twitter cards, viewport, heading hierarchy (`h1`–`h6`), link distribution (internal/external), image alt text coverage, body word count, and top keywords with keyword density.
-  - Transparent, explainable category scores for SEO, Performance (server response & page weight), Accessibility, and Best Practices.
-  - Prioritized, actionable recommendations sorted by severity (`critical`, `warning`, `info`).
-  - Real-time progress experience with asynchronous backend execution and live status polling (`processing`, `completed`, `failed`).
-- **Dashboard & History Management:**
-  - Authenticated user dashboard with real total scans, average score, daily scan quotas, and recent audits.
-  - Searchable, filterable, and sortable audit history with pagination and deletion confirmation.
-- **Google Keyword Rank Tracking:**
-  - Headless browser automation via Browserbase and Playwright scanning up to 5 Google search pages (top 50 organic results).
-  - Stored ranking history over time, position changes, and top 10 competitors.
-  - Transparent error reporting when upstream services block requests or require credentials.
-- **Authentication & User Scoping:**
-  - User registration and login with bcrypt password hashing and JSON Web Tokens.
-  - Strict ownership access control: users can only view, manage, and delete their own audits and keyword tracking records.
-  - Protected client routes for dashboard, analysis, reports, history, and rank tracking.
-- **Responsive Modern UI:**
-  - Built with React 19, TypeScript, Tailwind CSS 4, Lucide icons, and Vite.
+<p align="center">
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-system-architecture">Architecture</a> •
+  <a href="#-live-demo--preview">Live Demo</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-docker-deployment">Docker</a> •
+  <a href="#-api-documentation">API Reference</a> •
+  <a href="#-security-first-design">Security</a>
+</p>
 
-## Technology stack
+</div>
 
-| Area | Technologies |
-| --- | --- |
-| Client | React 19, TypeScript, React Router 7, Axios, Tailwind CSS 4, Vite 8 |
-| Server | Node.js (ESM), Express 5 |
-| Database | MongoDB with Mongoose 9 |
-| Authentication | bcrypt password hashing and JSON Web Tokens (JWT) |
-| Scraping & Headless Automation | Playwright Core, Browserbase SDK (`@browserbasehq/sdk`) |
-| Testing | Node.js native test runner (`node --test`) |
+---
 
-## Project structure
+## 🌟 Overview
+
+**Rank Pilot (AI SEO Tracker)** is an enterprise-grade full-stack SEO intelligence platform designed to replace costly third-party tools like Semrush and Ahrefs for modern web applications. 
+
+It provides **sub-second technical on-page SEO audits**, tracks live **Google SERP positions up to 50 organic results deep**, and leverages **Google Gemini AI** to produce human-quality executive summaries, prioritized remediation roadmaps, and high-impact keyword opportunities.
+
+---
+
+## ✨ Key Features
+
+### 🩺 1. Comprehensive Technical SEO Audit Engine
+- **Full DOM Inspection:** Deep analysis of Title tags, Meta descriptions, Canonical links, Viewport settings, Charset, Open Graph (OG), and Twitter Cards.
+- **Content & Structure Evaluation:** Heading hierarchy validator (`H1`–`H6`), body word count assessment, and top keyword extractor with density percentage.
+- **Link & Media Health:** Internal vs. external link distribution mapping, plus missing image `alt` attribute detection.
+- **Weighted Category Scoring (0–100):** Transparent scoring for:
+  - 🟢 **SEO Quality** (Meta, tags, robots, canonical)
+  - ⚡ **Performance** (Document payload weight & server response latency)
+  - ♿ **Accessibility** (Alt text coverage, semantic tags, contrast)
+  - 🛡️ **Best Practices** (HTTPS, viewport, modern web standards)
+
+### 🤖 2. Gemini-Powered AI Insights & Strategic Recommendations
+- **Executive AI SEO Summary:** 2–3 sentence executive diagnosis evaluating current health and core vulnerabilities.
+- **Smart Remediation Roadmap:** 4 prioritized, actionable suggestions referencing real DOM metrics from the audit.
+- **Keyword Opportunities:** Suggests high-intent long-tail search terms specific to the site's niche.
+- **On-Demand Generation & Refresh:** Single-click AI insight generator on completed reports with multi-model failover (`gemini-3.1-flash-lite` ➡️ `gemini-3.5-flash`).
+
+### 🎯 3. Automated Google SERP Rank Tracker
+- **Deep Search Scrapes:** Automates real Google searches up to 5 pages deep (top 50 organic results) using headless browser technology (Playwright & Browserbase).
+- **Competitor Tracking:** Automatically pinpoints target domain ranks and extracts the top 10 competing ranking domains.
+- **Historical Position Tracking:** Stores position changes over time to monitor keyword gains and drops.
+
+### 🛡️ 4. Enterprise-Grade SSRF Protection
+- **Zero-Trust URL Fetching:** Validates DNS hostnames, bans private IPv4/IPv6 subnets, loopback (`127.0.0.1`), link-local, multicast, and carrier-grade NAT blocks.
+- **Redirect Re-Validation:** Re-validates every redirect hop against SSRF filters to prevent DNS rebinding attacks.
+- **Resource Constraints:** Enforces 15-second timeouts, 5 MB maximum payload limits, and strict content-type verification.
+
+### 👥 5. Strict User Isolation & Quota Management
+- **JWT & Bcrypt Security:** Secure authentication with encrypted credential storage.
+- **Tenant Isolation:** Every analysis and tracked keyword is scoped strictly to `userId` — preventing cross-tenant access.
+- **Fair-Use Quota Engine:** Configurable daily scan allocations (50 scans/day for Free Tier) with automatic midnight reset.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    User([👤 User / Browser])
+    
+    subgraph Frontend ["Frontend (Vercel)"]
+        ReactApp["React 19 + Vite SPA\nTailwind CSS 4 • TypeScript"]
+    end
+    
+    subgraph Backend ["Backend API (Render / Docker)"]
+        ExpressApp["Express 5 Server\nNode.js 20 ESM"]
+        SSRFGuard["SSRF Guard\n(DNS & IP Filter)"]
+        HTMLAnalyzer["HTML Analyzer\nDOM Parser & Scorer"]
+        GeminiService["Gemini AI Service\n(gemini-3.1-flash-lite)"]
+        RankTracker["SERP Tracker\nBrowserbase SDK"]
+    end
+    
+    subgraph CloudServices ["Cloud Infrastructure"]
+        MongoAtlas[("MongoDB Atlas\nCloud Cluster")]
+        GoogleAI["Google Gemini API\nGenerative AI"]
+        Browserbase["Browserbase Cloud\nHeadless Chromium"]
+    end
+
+    User -->|HTTPS| ReactApp
+    ReactApp -->|REST API + JWT| ExpressApp
+    ExpressApp --> SSRFGuard
+    SSRFGuard -->|Safe HTTP Fetch| TargetSite([🌐 Target Website])
+    TargetSite -->|HTML Stream| HTMLAnalyzer
+    HTMLAnalyzer --> GeminiService
+    GeminiService -->|REST| GoogleAI
+    ExpressApp --> RankTracker
+    RankTracker -->|WebSocket / Cloud| Browserbase
+    ExpressApp --> MongoAtlas
+```
+
+---
+
+## 💻 Tech Stack
+
+| Domain | Technologies Used |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, React Router 7, Axios, Lucide Icons, React Hot Toast |
+| **Backend** | Node.js 20 (ESM), Express 5, Mongoose 9, JWT (`jsonwebtoken`), Bcrypt |
+| **Artificial Intelligence** | Google Gemini API (`gemini-3.1-flash-lite`, `gemini-3.5-flash`), Google GenAI |
+| **Automation & Scraping** | Playwright Core, Browserbase Cloud SDK (`@browserbasehq/sdk`) |
+| **DevOps & Containers** | Docker (Alpine Multi-Stage), Nginx 1.27, Docker Compose, Render, Vercel |
+| **Testing** | Node.js Native Test Runner (`node --test`), 23/23 Automated Unit Tests |
+
+---
+
+## 🚀 Live Demo & Preview
+
+* 🌐 **Production Frontend:** [https://ai-seo-tracker.vercel.app](https://ai-seo-tracker.vercel.app)
+* ⚙️ **Production API:** [https://seo-tracker-backend-u651.onrender.com](https://seo-tracker-backend-u651.onrender.com)
+
+---
+
+## 📦 Project Directory Structure
 
 ```text
 AI-SEO-Tracker/
-├── client/
-│   ├── public/
-│   └── src/
-│       ├── components/      # UI components (AnalysesCard, IssueCard, Navbar, etc.)
-│       ├── context/         # AppContext (auth, API instance, quota) & ThemeContext
-│       ├── pages/           # Dashboard, Analyze, Report, History, RankTracker, Login
-│       └── assets/          # Icons and static resources
-└── server/
-    ├── config/              # MongoDB connection
-    ├── controllers/         # Auth, Analysis, and Rank controllers
-    ├── middleware/          # JWT authentication middleware
-    ├── models/              # User, Analysis, and KeywordTracking Mongoose models
-    ├── routes/              # Express route declarations
-    ├── services/            # SSRF guard, HTML analyzer, audit orchestrator, rank tracker
-    └── tests/               # Focused unit tests (SSRF, HTML analyzer, ownership, rank)
+├── client/                      # React 19 Frontend
+│   ├── src/
+│   │   ├── components/          # Reusable UI (ScoreGauge, IssueCard, AnalysesCard, Navbar)
+│   │   ├── context/             # Global Auth, Theme & API Context
+│   │   ├── pages/               # Dashboard, Analyze, Report, RankTracker, History, Auth
+│   │   └── App.tsx              # Application Routes & Protected Wrappers
+│   ├── Dockerfile               # Multi-stage production build (Node build -> Nginx serve)
+│   ├── nginx.conf               # High-performance SPA routing + asset cache
+│   └── vercel.json              # Vercel deployment configuration
+├── server/                      # Express 5 Backend
+│   ├── config/                  # MongoDB Atlas connection & index initialization
+│   ├── controllers/             # Auth, Analysis, and Rank tracking controllers
+│   ├── middleware/              # JWT verification middleware
+│   ├── models/                  # Mongoose Schemas (User, Analysis, KeywordTracking)
+│   ├── routes/                  # API endpoints (/api/auth, /api/analysis, /api/rank)
+│   ├── services/                # SSRF Guard, HTML Analyzer, Gemini AI, SERP Scraper
+│   ├── tests/                   # 23 unit tests (SSRF, Analyzer, Quota, Access Control)
+│   └── Dockerfile               # Production Node.js Alpine container
+├── docker-compose.yml           # Full-stack multi-container orchestrator
+└── render.yaml                  # Render Infrastructure-as-Code Blueprint
 ```
 
-## Getting started
+---
+
+## ⚡ Quick Start (Local Development)
 
 ### Prerequisites
+* **Node.js** `20.19+` or `22.12+`
+* **npm** `10+`
+* **MongoDB** (local or MongoDB Atlas connection string)
 
-- Node.js **20.19+** or **22.12+** and npm.
-- A local or hosted MongoDB instance (e.g., MongoDB Atlas or local `mongod`).
-
-### 1. Clone the repository
-
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Adity-code2145/AI-SEO-Tracker.git
 cd AI-SEO-Tracker
 ```
 
-### 2. Install dependencies
+### 2. Configure Environment Variables
 
-```bash
-cd client
-npm install
-cd ../server
-npm install
-cd ..
-```
-
-### 3. Configure environment variables
-
-Create `server/.env` with your configuration:
-
+Create `server/.env`:
 ```dotenv
-MONGODB_URI=mongodb://127.0.0.1:27017/ai-seo-tracker
-JWT_SECRET=replace-with-a-long-random-secret
 PORT=5000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/seo-tracker
+JWT_SECRET=your_super_secret_jwt_key
+GEMINI_API_KEY=your_gemini_api_key
+BROWSERBASE_API_KEY=your_browserbase_api_key
 CLIENT_URL=http://localhost:5173
-BROWSERBASE_API_KEY=your-browserbase-api-key
 GOOGLE_SEARCH_COUNTRY=in
 GOOGLE_SEARCH_LANGUAGE=en
 ```
 
-Create `client/.env` if connecting to a non-default API URL:
-
+Create `client/.env`:
 ```dotenv
 VITE_BACKEND_URL=http://localhost:5000
 ```
 
-> **Note:** Client variables prefixed with `VITE_` are bundled directly into frontend JavaScript and are public. Never put private secrets (such as `JWT_SECRET` or `BROWSERBASE_API_KEY`) into `client/.env`.
-
-### 4. Run tests and verify build
+### 3. Install Dependencies & Run
 
 ```bash
-# Server tests
+# Terminal 1: Backend
+cd server
+npm install
+npm run server       # Runs with nodemon on port 5000
+
+# Terminal 2: Frontend
+cd client
+npm install
+npm run dev          # Runs on http://localhost:5173
+```
+
+---
+
+## 🐳 Docker Deployment (1-Command Full Stack)
+
+Spin up both the **Frontend (Nginx)** and **Backend (Node.js)** containers seamlessly:
+
+```bash
+# 1. Copy sample environment file
+cp .env.example .env
+
+# 2. Fill in your credentials in .env, then run:
+docker compose up --build -d
+```
+
+- **Frontend Application:** `http://localhost:3000`
+- **Backend API:** `http://localhost:5000`
+
+To stop containers:
+```bash
+docker compose down
+```
+
+---
+
+## 🧪 Testing & Code Quality
+
+The test suite covers SSRF attack vectors, HTML parsing logic, quota controls, and data ownership:
+
+```bash
+# Run server test suite (23 tests)
 cd server
 npm test
 
-# Client type-check, lint, and build
+# Run client linting & type checks
 cd ../client
 npm run lint
 npm run build
 ```
 
-### 5. Start the application
-
-Run each process in a separate terminal:
-
-**Terminal 1 — API server:**
-
-```bash
-cd server
-npm run server
+```text
+✔ getAnalysis rejects invalid ObjectId with 400
+✔ getAnalysis queries strictly with authenticated userId
+✔ deleteAnalysis enforces user ownership
+✔ extractSeoData parses metadata, headings, links, and images
+✔ computeSeoScoreAndIssues awards high score for compliant page
+✔ isIpSafe correctly detects public vs private/loopback/link-local IPs
+✔ validateHostSafe rejects hosts resolving to restricted IPs
+✔ safeFetchHtml re-validates redirect destinations against SSRF
+...
+ℹ pass 23 / 23 (100% passing)
 ```
 
-The server starts on `http://localhost:5000` by default.
+---
 
-**Terminal 2 — Client:**
+## 📡 API Reference
 
-```bash
-cd client
-npm run dev
-```
+All protected routes require an `Authorization: Bearer <token>` header.
 
-Open `http://localhost:5173` in your browser.
+### 🔐 Authentication (`/api/auth`)
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Register new user account | ❌ No |
+| `POST` | `/api/auth/login` | Login user & return JWT token | ❌ No |
+| `GET` | `/api/auth/user` | Fetch active user profile & daily quota | 🔒 Yes |
 
-## Available scripts
+### 🔍 SEO Analysis (`/api/analysis`)
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/analysis` | Queue a website URL for technical audit | 🔒 Yes |
+| `GET` | `/api/analysis` | List user audits (supports `?page=`, `?search=`, `?sort=`) | 🔒 Yes |
+| `GET` | `/api/analysis/:id` | Get audit results & category scores | 🔒 Yes |
+| `POST` | `/api/analysis/:id/ai-insights` | Generate/regenerate Gemini AI insights on demand | 🔒 Yes |
+| `DELETE` | `/api/analysis/:id` | Delete an audit record | 🔒 Yes |
 
-### Client (`client/`)
+### 📈 SERP Rank Tracking (`/api/rank`)
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/rank/add` | Add `{ keyword, url }` to track Google rank | 🔒 Yes |
+| `GET` | `/api/rank/list` | List all tracked keywords & latest ranks | 🔒 Yes |
+| `GET` | `/api/rank/:id` | Get rank history, competitors & trends | 🔒 Yes |
+| `POST` | `/api/rank/:id/refresh` | Trigger real-time Google search scrape | 🔒 Yes |
+| `DELETE` | `/api/rank/:id` | Remove a tracked keyword | 🔒 Yes |
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start Vite development server. |
-| `npm run build` | Type-check with TypeScript and build production bundle. |
-| `npm run preview` | Preview production build locally. |
-| `npm run lint` | Run ESLint across client code. |
+---
 
-### Server (`server/`)
+## 🔒 Security-First Design
 
-| Command | Description |
-| --- | --- |
-| `npm start` | Start Express server with Node.js. |
-| `npm run server` | Start Express server with Nodemon (auto-reloading). |
-| `npm test` | Run all unit tests with Node native test runner (`node --test`). |
+1. **DNS Rebinding & SSRF Mitigation:** DNS resolution occurs prior to HTTP requests. Every resolved IP is checked against RFC 1918, RFC 3927, and RFC 6598 private blocks. All redirect hops are recursively validated.
+2. **Denial of Service Prevention:** Streaming HTTP requests are bounded by `maxByteLength = 5MB` and abort signals (`timeout = 15s`).
+3. **Cross-Tenant Isolation:** Database queries enforce `{ _id: recordId, userId: req.userId }` on all mutating and reading operations.
+4. **Strict CORS Policy:** Whitelists allowed production origins only.
 
-## API Reference
+---
 
-All protected endpoints require an `Authorization: Bearer <token>` header.
+## 📄 License
 
-### Authentication API (`/api/auth`)
+This project is licensed under the **MIT License** — feel free to use, modify, and build upon this code for personal or commercial projects. See the [LICENSE](LICENSE) file for details.
 
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| `POST` | `/api/auth/register` | Create an account with name, email, and password. Returns token and user. | No |
-| `POST` | `/api/auth/login` | Log in with email and password. Returns token and user. | No |
-| `GET` | `/api/auth/user` | Fetch current authenticated user's profile and quota stats. | Yes |
+---
 
-### Analysis API (`/api/analysis`)
-
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| `POST` | `/api/analysis` | Submit `{ url }` for technical audit. Runs SSRF checks, tracks daily quota, and begins scan. | Yes |
-| `GET` | `/api/analysis` | List user's audits with pagination (`?page=1&limit=15`), status filter, search, and sort. | Yes |
-| `GET` | `/api/analysis/:id` | Get full technical audit results, metadata, scores, and recommendations. | Yes |
-| `DELETE` | `/api/analysis/:id` | Delete an audit record owned by the authenticated user. | Yes |
-
-### Rank Tracking API (`/api/rank`)
-
-| Method | Endpoint | Description | Auth Required |
-| --- | --- | --- | --- |
-| `POST` | `/api/rank/add` | Add keyword and domain to track (`{ keyword, url }`). | Yes |
-| `GET` | `/api/rank/list` | List all tracked keywords for the user. | Yes |
-| `GET` | `/api/rank/:id` | Get tracking details, rank history, and competitor positions. | Yes |
-| `POST` | `/api/rank/:id/refresh` | Trigger a fresh Google search rank check for a keyword. | Yes |
-| `POST` | `/api/rank/:id/toggle` | Toggle keyword active tracking status. | Yes |
-| `DELETE` | `/api/rank/:id` | Delete keyword tracking entry. | Yes |
-
-## Security notes
-
-- **SSRF Defense:** The URL fetcher resolves DNS hostnames and verifies all resolved IP addresses against private, reserved, loopback, link-local, multicast, and carrier-grade NAT blocks using `ipaddr.js`. Redirects are followed manually and re-checked at every hop.
-- **Resource Limits:** Requests enforce 15-second timeouts, a maximum response payload size of 5 MB, and content-type validation to prevent memory exhaustion.
-- **CORS Configuration:** Origin access is restricted to configured `CLIENT_URL` values (defaulting to local Vite dev server in development).
-- **Strict Data Scoping:** Every audit and keyword tracking record is verified against the authenticated user ID (`req.userId`), preventing unauthorized cross-user access or manipulation.
-
-## Known limitations
-
-1. **Performance Metrics Disclosure:** The website audit analyzes server response time and HTML document payload size via direct HTTP fetch. It does not execute in-browser JavaScript or measure Core Web Vitals (LCP, FID, CLS), which require a full headless browser session.
-2. **Google Automated Searches:** Keyword rank tracking relies on live Google search scraping through Browserbase. Google may block or challenge automated requests during high volume or rapid refreshes. If blocked, the application displays an honest error without corrupting previous historical positions.
-3. **Outgoing Link Spidering:** The quick single-page audit categorizes links as internal or external based on hostname resolution, but does not crawl third-party outbound URLs to verify live HTTP 200 responses.
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE).
+<div align="center">
+  <b>Built with ❤️ by <a href="https://github.com/Adity-code2145">Aditya Raj</a></b>
+  <br/>
+  <i>If you find this project helpful, please give it a ⭐ on GitHub!</i>
+</div>
