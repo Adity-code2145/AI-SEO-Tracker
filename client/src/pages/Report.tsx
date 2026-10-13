@@ -16,9 +16,12 @@ import {
     Type,
     Search,
     Loader2,
+    Sparkles,
+    RefreshCw,
 } from "lucide-react";
 import { useApp } from "../context/useApp";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 interface AnalysisData {
     _id: string;
@@ -81,7 +84,28 @@ export default function Report() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("overview");
+    const [generatingAi, setGeneratingAi] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const handleGenerateAi = async () => {
+        if (!id || generatingAi) return;
+        setGeneratingAi(true);
+        try {
+            const { data } = await api.post(`/api/analysis/${id}/ai-insights`);
+            if (data.success && data.analysis) {
+                setAnalysis(data.analysis as AnalysisData);
+                toast.success("AI insights generated successfully!");
+            }
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                toast.error(err.response?.data?.message || "Failed to generate AI insights.");
+            } else {
+                toast.error("Failed to generate AI insights.");
+            }
+        } finally {
+            setGeneratingAi(false);
+        }
+    };
 
     const stopPolling = () => {
         if (pollRef.current) {
@@ -695,64 +719,98 @@ export default function Report() {
 
                     {activeTab === "ai" && (
                         <div className="space-y-6">
-                            {/* AI Summary */}
-                            {analysis.aiSummary ? (
-                                <div className="bg-card border border-primary/20 rounded-2xl p-6">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-xl">✨</span>
-                                        <h3 className="text-base font-semibold text-foreground">AI SEO Summary</h3>
-                                        <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Powered by Gemini</span>
-                                    </div>
-                                    <p className="text-muted-foreground text-sm leading-relaxed">{analysis.aiSummary}</p>
-                                </div>
-                            ) : (
-                                <div className="bg-card border border-border rounded-2xl p-6 text-center text-muted-foreground text-sm">
-                                    AI summary not available for this analysis.
-                                </div>
-                            )}
-
-                            {/* AI Recommendations */}
-                            {analysis.aiRecommendations && analysis.aiRecommendations.length > 0 && (
-                                <div className="bg-card border border-border rounded-2xl p-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <span className="text-xl">🎯</span>
-                                        <h3 className="text-base font-semibold text-foreground">Smart Recommendations</h3>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {analysis.aiRecommendations.map((rec, i) => (
-                                            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background border border-border">
-                                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                                                    {i + 1}
-                                                </div>
-                                                <p className="text-sm text-foreground leading-relaxed">{rec}</p>
+                            {/* Has AI content */}
+                            {analysis.aiSummary || (analysis.aiRecommendations && analysis.aiRecommendations.length > 0) ? (
+                                <>
+                                    {/* AI Summary */}
+                                    {analysis.aiSummary && (
+                                        <div className="bg-card border border-primary/20 rounded-2xl p-6">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="text-xl">✨</span>
+                                                <h3 className="text-base font-semibold text-foreground">AI SEO Summary</h3>
+                                                <span className="ml-auto text-xs bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-medium">Powered by Gemini</span>
+                                                <button
+                                                    onClick={handleGenerateAi}
+                                                    disabled={generatingAi}
+                                                    title="Regenerate AI Insights"
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition ml-2 cursor-pointer disabled:opacity-50"
+                                                >
+                                                    {generatingAi ? (
+                                                        <Loader2 size={13} className="animate-spin text-primary" />
+                                                    ) : (
+                                                        <RefreshCw size={13} />
+                                                    )}
+                                                    <span>{generatingAi ? "Generating..." : "Regenerate"}</span>
+                                                </button>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                            <p className="text-muted-foreground text-sm leading-relaxed">{analysis.aiSummary}</p>
+                                        </div>
+                                    )}
 
-                            {/* AI Keyword Suggestions */}
-                            {analysis.aiKeywordSuggestions && analysis.aiKeywordSuggestions.length > 0 && (
-                                <div className="bg-card border border-border rounded-2xl p-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <span className="text-xl">🔑</span>
-                                        <h3 className="text-base font-semibold text-foreground">Keyword Opportunities</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {analysis.aiKeywordSuggestions.map((kw, i) => (
-                                            <span key={i} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-medium">
-                                                {kw}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                    {/* AI Recommendations */}
+                                    {analysis.aiRecommendations && analysis.aiRecommendations.length > 0 && (
+                                        <div className="bg-card border border-border rounded-2xl p-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="text-xl">🎯</span>
+                                                <h3 className="text-base font-semibold text-foreground">Smart Recommendations</h3>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {analysis.aiRecommendations.map((rec, i) => (
+                                                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background border border-border">
+                                                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                                            {i + 1}
+                                                        </div>
+                                                        <p className="text-sm text-foreground leading-relaxed">{rec}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            {!analysis.aiSummary && (!analysis.aiRecommendations || analysis.aiRecommendations.length === 0) && (
-                                <div className="bg-card border border-border rounded-2xl p-12 text-center">
-                                    <div className="text-4xl mb-3">✨</div>
-                                    <h3 className="text-lg font-semibold text-foreground mb-2">AI Insights Not Available</h3>
-                                    <p className="text-sm text-muted-foreground">Run a new analysis to get Gemini-powered SEO recommendations.</p>
+                                    {/* AI Keyword Suggestions */}
+                                    {analysis.aiKeywordSuggestions && analysis.aiKeywordSuggestions.length > 0 && (
+                                        <div className="bg-card border border-border rounded-2xl p-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="text-xl">🔑</span>
+                                                <h3 className="text-base font-semibold text-foreground">Keyword Opportunities</h3>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {analysis.aiKeywordSuggestions.map((kw, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-medium">
+                                                        {kw}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                /* Empty state with on-demand generate button */
+                                <div className="bg-card border border-border rounded-2xl p-10 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 text-3xl">
+                                        ✨
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-foreground mb-2">Generate Gemini AI Insights</h3>
+                                    <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                                        Get instant AI-driven SEO summary, prioritized action items, and high-value keyword opportunities analyzed specifically for this website.
+                                    </p>
+                                    <button
+                                        onClick={handleGenerateAi}
+                                        disabled={generatingAi}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {generatingAi ? (
+                                            <>
+                                                <Loader2 size={18} className="animate-spin" />
+                                                <span>Analyzing with Gemini AI...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={18} />
+                                                <span>Generate AI Insights Now</span>
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             )}
                         </div>

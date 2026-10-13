@@ -3,6 +3,7 @@ import Analysis from "../models/Analysis.js";
 import User from "../models/User.js";
 import { validateAndNormalizeUrl } from "../services/ssrfGuard.js";
 import { executeAnalysis } from "../services/analysisService.js";
+import { getGeminiInsights } from "../services/geminiService.js";
 
 // Create / Start analysis for a URL
 export const createAnalysis = async (req, res) => {
@@ -159,5 +160,59 @@ export const deleteAnalysis = async (req, res) => {
     } catch (error) {
         console.error("Delete analysis error:", error.message);
         res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+// Generate or re-generate Gemini AI insights on-demand for an existing completed analysis
+export const generateAiInsightsForAnalysis = async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ success: false, message: "Invalid analysis ID" });
+        }
+
+        const analysis = await Analysis.findOne({
+            _id: req.params.id,
+            userId: req.userId,
+        });
+
+        if (!analysis) {
+            return res.status(404).json({ success: false, message: "Analysis not found" });
+        }
+
+        const audit = {
+            overallScore: analysis.overallScore,
+            metaData: analysis.metaData,
+            headings: analysis.headings,
+            links: analysis.links,
+            images: analysis.images,
+            keywords: analysis.keywords,
+            issues: analysis.issues,
+            wordCount: analysis.wordCount,
+            loadTime: analysis.loadTime,
+            pageSize: analysis.pageSize,
+        };
+
+        const gemini = await getGeminiInsights(audit, analysis.url);
+
+        if (!gemini.aiSummary) {
+            return res.status(502).json({
+                success: false,
+                message: "Gemini API is temporarily busy. Please retry in a few moments.",
+            });
+        }
+
+        analysis.aiSummary = gemini.aiSummary;
+        analysis.aiRecommendations = gemini.aiRecommendations;
+        analysis.aiKeywordSuggestions = gemini.aiKeywordSuggestions;
+        await analysis.save();
+
+        res.json({
+            success: true,
+            message: "AI insights generated successfully",
+            analysis,
+        });
+    } catch (error) {
+        console.error("Generate AI insights error:", error.message);
+        res.status(500).json({ success: false, message: error.message || "Failed to generate AI insights" });
     }
 };

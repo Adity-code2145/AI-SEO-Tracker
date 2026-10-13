@@ -1,7 +1,7 @@
 /**
  * Gemini AI SEO Insights Service
  * Uses Google Gemini 3.5 Flash / Flash Lite via REST API with AQ authorization keys.
- * Includes automatic model fallback if one model experiences high demand (503/429).
+ * Includes automatic model fallback and resilient JSON extraction.
  */
 
 const CANDIDATE_MODELS = [
@@ -11,6 +11,37 @@ const CANDIDATE_MODELS = [
 ];
 
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+/**
+ * Extracts and parses JSON from a model's response text.
+ */
+function extractJsonFromText(rawText) {
+    if (!rawText) return null;
+
+    // Try finding JSON inside markdown code blocks ```json ... ```
+    const codeBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+        try {
+            return JSON.parse(codeBlockMatch[1]);
+        } catch {
+            // fallback to greedy brace match
+        }
+    }
+
+    // Try finding the outermost { ... }
+    const firstBrace = rawText.indexOf("{");
+    const lastBrace = rawText.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        const potentialJson = rawText.substring(firstBrace, lastBrace + 1);
+        try {
+            return JSON.parse(potentialJson);
+        } catch {
+            // fall through
+        }
+    }
+
+    return null;
+}
 
 /**
  * Uses Gemini to generate intelligent SEO recommendations
@@ -23,6 +54,7 @@ const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 export async function getGeminiInsights(audit, url) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+        console.warn("GEMINI_API_KEY is not set in environment");
         return { aiRecommendations: [], aiSummary: "", aiKeywordSuggestions: [] };
     }
 
@@ -64,7 +96,7 @@ Current Issues: ${pageData.existingIssues || "None"}
 Overall SEO Score: ${pageData.overallScore}/100
 Load Time: ${pageData.loadTime}ms, Page Size: ${Math.round(pageData.pageSize / 1024)}KB
 
-Respond in pure valid JSON without markdown tags:
+Respond ONLY in valid JSON format:
 {
   "aiSummary": "2-3 clear sentences assessing the site's overall SEO health, strengths, and primary area to fix.",
   "aiRecommendations": [
@@ -91,10 +123,10 @@ Respond in pure valid JSON without markdown tags:
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
                         temperature: 0.4,
-                        maxOutputTokens: 800,
+                        maxOutputTokens: 900,
                     },
                 }),
-                signal: AbortSignal.timeout(10000),
+                signal: AbortSignal.timeout(20000), // 20-second timeout for cloud reliability
             });
 
             if (!response.ok) {
@@ -106,17 +138,16 @@ Respond in pure valid JSON without markdown tags:
             const data = await response.json();
             const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
+            const parsed = extractJsonFromText(rawText);
+            if (!parsed) {
+                console.warn(`Gemini [${model}] response could not be parsed as JSON, trying next model...`);
                 continue;
             }
 
-            const parsed = JSON.parse(jsonMatch[0]);
-
             return {
                 aiSummary: typeof parsed.aiSummary === "string" ? parsed.aiSummary.trim() : "",
-                aiRecommendations: Array.isArray(parsed.aiRecommendations) ? parsed.aiRecommendations : [],
-                aiKeywordSuggestions: Array.isArray(parsed.aiKeywordSuggestions) ? parsed.aiKeywordSuggestions : [],
+                aiRecommendations: Array.isArray(parsed.aiRecommendations) ? parsed.aiRecommendations.map(String) : [],
+                aiKeywordSuggestions: Array.isArray(parsed.aiKeywordSuggestions) ? parsed.aiKeywordSuggestions.map(String) : [],
             };
         } catch (err) {
             console.warn(`Gemini [${model}] failed (${err.message}) - trying fallback...`);
